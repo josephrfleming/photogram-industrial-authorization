@@ -1,28 +1,36 @@
 class CommentsController < ApplicationController
   before_action :set_comment, only: %i[ show edit update destroy ]
 
-  # GET /comments or /comments.json
+  # GET /comments
   def index
-    @comments = Comment.all
+    # Use Pundit's policy_scope to filter what the user is allowed to see
+    @comments = policy_scope(Comment)
+    # Alternatively, you could do:
+    #   @comments = Comment.all
+    #   authorize @comments  # if you prefer to authorize the collection directly
   end
 
-  # GET /comments/1 or /comments/1.json
+  # GET /comments/1
   def show
+    authorize @comment
   end
 
   # GET /comments/new
   def new
     @comment = Comment.new
+    authorize @comment
   end
 
   # GET /comments/1/edit
   def edit
+    authorize @comment
   end
 
-  # POST /comments or /comments.json
+  # POST /comments
   def create
     @comment = Comment.new(comment_params)
     @comment.author = current_user
+    authorize @comment  # Calls create? in CommentPolicy
 
     respond_to do |format|
       if @comment.save
@@ -35,8 +43,10 @@ class CommentsController < ApplicationController
     end
   end
 
-  # PATCH/PUT /comments/1 or /comments/1.json
+  # PATCH/PUT /comments/1
   def update
+    authorize @comment  # Calls update? in CommentPolicy
+
     respond_to do |format|
       if @comment.update(comment_params)
         format.html { redirect_to root_url, notice: "Comment was successfully updated." }
@@ -48,9 +58,11 @@ class CommentsController < ApplicationController
     end
   end
 
-  # DELETE /comments/1 or /comments/1.json
+  # DELETE /comments/1
   def destroy
+    authorize @comment  # Calls destroy? in CommentPolicy
     @comment.destroy
+
     respond_to do |format|
       format.html { redirect_back fallback_location: root_url, notice: "Comment was successfully destroyed." }
       format.json { head :no_content }
@@ -58,13 +70,15 @@ class CommentsController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
-    def set_comment
-      @comment = Comment.find(params[:id])
-    end
 
-    # Only allow a list of trusted parameters through.
-    def comment_params
-      params.require(:comment).permit(:author_id, :photo_id, :body)
-    end
+  def set_comment
+    @comment = Comment.find(params[:id])
+  end
+
+  def comment_params
+    # If you rely on Pundit’s permitted attributes, you could also do:
+    # params.require(:comment).permit(policy(@comment).permitted_attributes)
+    # Otherwise, leave as-is:
+    params.require(:comment).permit(:author_id, :photo_id, :body)
+  end
 end
