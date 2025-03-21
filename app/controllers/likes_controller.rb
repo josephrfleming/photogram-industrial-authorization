@@ -1,27 +1,34 @@
 class LikesController < ApplicationController
   before_action :set_like, only: %i[ show edit update destroy ]
 
-  # GET /likes or /likes.json
+  # GET /likes
   def index
-    @likes = Like.all
+    @likes = policy_scope(Like) # Calls LikePolicy::Scope#resolve
+    # Or if you prefer:
+    #   @likes = Like.all
+    #   authorize @likes
   end
 
-  # GET /likes/1 or /likes/1.json
+  # GET /likes/1
   def show
+    authorize @like  # Calls show? in LikePolicy
   end
 
   # GET /likes/new
   def new
     @like = Like.new
+    authorize @like  # Calls new? (which typically defers to create?)
   end
 
   # GET /likes/1/edit
   def edit
+    authorize @like  # Calls edit? in LikePolicy
   end
 
-  # POST /likes or /likes.json
+  # POST /likes
   def create
     @like = Like.new(like_params)
+    authorize @like  # Calls create? in LikePolicy
 
     respond_to do |format|
       if @like.save
@@ -34,8 +41,10 @@ class LikesController < ApplicationController
     end
   end
 
-  # PATCH/PUT /likes/1 or /likes/1.json
+  # PATCH/PUT /likes/1
   def update
+    authorize @like  # Calls update? in LikePolicy
+
     respond_to do |format|
       if @like.update(like_params)
         format.html { redirect_to @like, notice: "Like was successfully updated." }
@@ -47,9 +56,11 @@ class LikesController < ApplicationController
     end
   end
 
-  # DELETE /likes/1 or /likes/1.json
+  # DELETE /likes/1
   def destroy
+    authorize @like  # Calls destroy? in LikePolicy
     @like.destroy
+
     respond_to do |format|
       format.html { redirect_back fallback_location: @like.photo, notice: "Like was successfully destroyed." }
       format.json { head :no_content }
@@ -57,13 +68,12 @@ class LikesController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
-    def set_like
-      @like = Like.find(params[:id])
-    end
 
-    # Only allow a list of trusted parameters through.
-    def like_params
-      params.require(:like).permit(:fan_id, :photo_id)
-    end
+  def set_like
+    @like = Like.find(params[:id])
+  end
+
+  def like_params
+    params.require(:like).permit(:fan_id, :photo_id)
+  end
 end

@@ -1,29 +1,28 @@
 class PhotosController < ApplicationController
   before_action :set_photo, only: %i[ show edit update destroy ]
-  before_action :ensure_current_user_is_owner, only: %i[ edit update destroy ]
 
-  # GET /photos or /photos.json
+  # GET /photos
   def index
-    @photos = Photo.all
+    # Use Pundit’s policy_scope to retrieve only the photos the user is allowed to see
+    @photos = policy_scope(Photo)
   end
 
-  # GET /photos/1 or /photos/1.json
+  # GET /photos/1
   def show
+    authorize @photo  # calls PhotoPolicy#show?
   end
 
   # GET /photos/new
   def new
     @photo = Photo.new
+    authorize @photo  # calls PhotoPolicy#new?
   end
 
-  # GET /photos/1/edit
-  def edit
-  end
-
-  # POST /photos or /photos.json
+  # POST /photos
   def create
     @photo = Photo.new(photo_params)
     @photo.owner = current_user
+    authorize @photo  # calls PhotoPolicy#create?
 
     respond_to do |format|
       if @photo.save
@@ -36,8 +35,15 @@ class PhotosController < ApplicationController
     end
   end
 
-  # PATCH/PUT /photos/1 or /photos/1.json
+  # GET /photos/1/edit
+  def edit
+    authorize @photo  # calls PhotoPolicy#edit?
+  end
+
+  # PATCH/PUT /photos/1
   def update
+    authorize @photo  # calls PhotoPolicy#update?
+
     respond_to do |format|
       if @photo.update(photo_params)
         format.html { redirect_to @photo, notice: "Photo was successfully updated." }
@@ -49,9 +55,11 @@ class PhotosController < ApplicationController
     end
   end
 
-  # DELETE /photos/1 or /photos/1.json
+  # DELETE /photos/1
   def destroy
+    authorize @photo  # calls PhotoPolicy#destroy?
     @photo.destroy
+
     respond_to do |format|
       format.html { redirect_back fallback_location: root_url, notice: "Photo was successfully destroyed." }
       format.json { head :no_content }
@@ -60,21 +68,12 @@ class PhotosController < ApplicationController
 
   private
 
-    # Use callbacks to share common setup or constraints between actions.
     def set_photo
       @photo = Photo.find(params[:id])
     end
 
-    # Ensure that only the owner can perform restricted actions.
-    def ensure_current_user_is_owner
-      unless current_user == @photo.owner
-        redirect_back fallback_location: root_url, alert: "You're not authorized for that."
-      end
-    end
-
-    # Only allow a list of trusted parameters through.
-    # Note: We remove :owner_id because the owner is set automatically to current_user.
     def photo_params
+      # owner is set automatically to current_user
       params.require(:photo).permit(:image, :comments_count, :likes_count, :caption)
     end
 end
